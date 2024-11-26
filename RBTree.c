@@ -216,11 +216,6 @@ void rotacionarDireita(Arvore* arvore, No* no) {
     no->pai = esquerda;
 }
 
-//
-
-#include <stdlib.h>
-#include <stdio.h>
-
 void removerBalancear(Arvore* arvore, No* no);
 void substituirNo(Arvore* arvore, No* antigo, No* novo);
 
@@ -332,7 +327,6 @@ void removerBalancear(Arvore* arvore, No* no) {
     }
     no->cor = Preto;
 }
-
 
 int main() {
     Arvore* arvore = criar();
