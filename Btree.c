@@ -1,21 +1,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-// B-Tree Node Structure
 typedef struct Node {
-    int total;             // Number of keys in the node
-    int *keys;             // Array of keys
-    struct Node **children; // Array of child pointers
-    struct Node *parent;   // Pointer to parent node
+    int total;             
+    int *keys;
+    struct Node **children;
+    struct Node *parent;
 } Node;
 
 // B-Tree Structure
 typedef struct BTree {
-    Node *root;            // Pointer to the root node
-    int order;             // Order of the B-Tree
+    Node *root;            
+    int order;             
 } BTree;
 
-// Function to create a new B-Tree node
 Node *createNode(int order) {
     Node *node = (Node *)malloc(sizeof(Node));
     int maxKeys = order * 2;
@@ -32,7 +30,6 @@ Node *createNode(int order) {
     return node;
 }
 
-// Function to create a B-Tree
 BTree *createBTree(int order) {
     BTree *tree = (BTree *)malloc(sizeof(BTree));
     tree->order = order;
@@ -52,12 +49,10 @@ int binarySearch(Node *node, int key) {
     return low;
 }
 
-// Check for underflow in a node
 int isUnderflow(BTree *tree, Node *node) {
     return node->total < tree->order;
 }
 
-// Remove a key from a node
 void removeKeyFromNode(Node *node, int index) {
     for (int i = index; i < node->total - 1; i++) {
         node->keys[i] = node->keys[i + 1];
