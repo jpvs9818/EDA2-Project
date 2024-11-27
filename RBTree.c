@@ -1,5 +1,8 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <time.h>
+#define VSize 10000
+long long unsigned int cont = 0;
 
 enum coloracao { Vermelho, Preto };
 typedef enum coloracao Cor;
@@ -55,11 +58,12 @@ No* criarNo(Arvore* arvore, No* pai, int valor) {
     no->direita = arvore->nulo;
     no->esquerda = arvore->nulo;
     no->cor = Vermelho; // Cor padrão para novos nós
-
+    cont++;
     return no;
 }
 
 No* adicionarNo(Arvore* arvore, No* no, int valor) {
+    cont += 2;
     if (valor > no->valor) {
         if (no->direita == arvore->nulo) {
             no->direita = criarNo(arvore, no, valor);
@@ -78,6 +82,7 @@ No* adicionarNo(Arvore* arvore, No* no, int valor) {
 }
 
 No* adicionar(Arvore* arvore, int valor) {
+    cont++;
     if (vazia(arvore)) {
         arvore->raiz = criarNo(arvore, arvore->nulo, valor);
         arvore->raiz->cor = Preto;
@@ -98,6 +103,7 @@ No* localizar(Arvore* arvore, int valor) {
             } else {
                 no = valor < no->valor ? no->esquerda : no->direita;
             }
+            cont++;
         }
     }
     return NULL;
@@ -170,6 +176,7 @@ void balancear(Arvore* arvore, No* no) {
                 }
             }
         }
+        cont += 3;
     }
     arvore->raiz->cor = Preto;
 }
@@ -251,7 +258,7 @@ void remover(Arvore* arvore, int valor) {
         y->esquerda->pai = y;
         y->cor = no->cor;
     }
-
+    cont += 3; 
     free(no); // Free the removed node
     if (corOriginal == Preto) {
         removerBalancear(arvore, x);
@@ -267,6 +274,7 @@ void substituirNo(Arvore* arvore, No* antigo, No* novo) {
         antigo->pai->direita = novo;
     }
     novo->pai = antigo->pai;
+    cont++;
 }
 
 void removerBalancear(Arvore* arvore, No* no) {
@@ -326,27 +334,63 @@ void removerBalancear(Arvore* arvore, No* no) {
         }
     }
     no->cor = Preto;
+    cont += 4;
+}
+
+void destruirArvore(Arvore* arvore, No* no) {
+    if (no != arvore->nulo) { // Avoid freeing the shared NIL node
+        destruirArvore(arvore, no->esquerda);
+        destruirArvore(arvore, no->direita);
+        free(no);
+    }
+}
+
+void destruir(Arvore* arvore) {
+    destruirArvore(arvore, arvore->raiz); 
+    free(arvore->nulo);                  
+    free(arvore);                        
+}
+
+void shuffle(int *array, int size) {
+    for (int i = size - 1; i > 0; i--) {
+        int j = rand() % (i + 1); // Random index between 0 and i
+        // Swap elements at i and j
+        int temp = array[i];
+        array[i] = array[j];
+        array[j] = temp;
+    }
+}
+
+int* createArray(int size){
+    int *v = (int*)malloc(sizeof(int)*size);
+    for(int i = 0; i < size; i++){
+        v[i] = i+1;
+    }
+    return v;
 }
 
 int main() {
-    Arvore* arvore = criar();
-
-    adicionar(arvore, 50);
-    adicionar(arvore, 30);
-    adicionar(arvore, 70);
-    adicionar(arvore, 10);
-    adicionar(arvore, 40);
-    adicionar(arvore, 60);
-    adicionar(arvore, 80);
-
-    printf("Em ordem: ");
-    percorrerProfundidadeInOrder(arvore, arvore->raiz, visitar);
-    printf("\n");
-
-    remover(arvore, 30);
-    printf("Após remoção: ");
-    percorrerProfundidadeInOrder(arvore, arvore->raiz, visitar);
-    printf("\n");
-
+    int *v = createArray(VSize);
+    FILE *ptr = fopen("RBTreeInput.txt", "w");
+    FILE *ptr2 = fopen("RBTreeOutput.txt", "w");
+    for(int i = 0; i < 10; i++){
+        cont = 0;
+        srand(time(NULL) + i);
+        shuffle(v, VSize);
+        Arvore *tree = criar();
+        for (int j = 0; j < VSize; j++) {
+            adicionar(tree, v[j]);
+        }
+        fprintf(ptr, "RBT,Input,%llu\n", cont);
+        cont = 0;
+        for (int k = 0; k < VSize; k++) {
+            remover(tree, v[k]);
+        }
+        fprintf(ptr2, "RBT,Output,%llu\n", cont);
+        destruir(tree);
+    }
+    fclose(ptr);
+    fclose(ptr2);
+    free(v);
     return 0;
 }
