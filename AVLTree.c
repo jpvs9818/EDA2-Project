@@ -1,5 +1,8 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <time.h>
+#define VSize 10000
+long long unsigned int cont = 0;
 
 typedef struct no {
     struct no* pai;
@@ -40,6 +43,7 @@ int vazia(Arvore* arvore) {
 }
 
 No* adicionarNo(No* no, int valor) {
+    cont += 2;
     if (valor > no->valor) {
         if (no->direita == NULL) {
             No* novo = criarNo(no, valor);
@@ -60,6 +64,7 @@ No* adicionarNo(No* no, int valor) {
 }
 
 No* adicionar(Arvore* arvore, int valor) {
+    cont++;
     if (vazia(arvore)) {
         arvore->raiz = criarNo(NULL, valor);
         return arvore->raiz;
@@ -77,10 +82,12 @@ No* criarNo(No* pai, int valor) {
     no->esquerda = NULL;
     no->direita = NULL;
     no->altura = 1; // Altura inicial do nó
+    cont++;
     return no;
 }
 
 No* localizar(No* no, int valor) {
+    cont++;
     if (no == NULL || no->valor == valor) {
         return no;
     }
@@ -122,6 +129,7 @@ void balanceamento(Arvore* arvore, No* no) {
             }
         }
         no = no->pai;
+        cont++;
     }
 }
 
@@ -147,7 +155,7 @@ No* rse(Arvore* arvore, No* no) {
     }
     direita->esquerda = no;
     no->pai = direita;
-
+    cont += 2;
     no->altura = (altura(no->esquerda) > altura(no->direita) ? altura(no->esquerda) : altura(no->direita)) + 1;
     direita->altura = (altura(direita->esquerda) > altura(direita->direita) ? altura(direita->esquerda) : altura(direita->direita)) + 1;
     return direita;
@@ -167,7 +175,7 @@ No* rsd(Arvore* arvore, No* no) {
     }
     esquerda->direita = no;
     no->pai = esquerda;
-
+    cont += 2;
     no->altura = (altura(no->esquerda) > altura(no->direita) ? altura(no->esquerda) : altura(no->direita)) + 1;
     esquerda->altura = (altura(esquerda->esquerda) > altura(esquerda->direita) ? altura(esquerda->esquerda) : altura(esquerda->direita)) + 1;
     return esquerda;
@@ -192,6 +200,7 @@ No* encontrarMinimo(No* no) {
 
 void removerNo(Arvore* arvore, No* no) {
     if (no == NULL) return;
+    cont += 3;
 
     No* substituto;
     if (no->esquerda == NULL && no->direita == NULL) {
@@ -229,25 +238,54 @@ void remover(Arvore* arvore, int valor) {
     }
 }
 
-int main() {
-    Arvore* a = criar();
-
-    adicionar(a, 1);
-    adicionar(a, 2);
-    adicionar(a, 3);
-    adicionar(a, 4);
-    adicionar(a, 5);
-    adicionar(a, 6);
-
-    printf("In-order antes da remoção: ");
-    percorrer(a->raiz, visitar);
-    printf("\n");
-
-    remover(a, 2);
-    printf("In-order depois da remoção: ");
-    percorrer(a->raiz, visitar);
-    printf("\n");
-
-    return 0;
+void freeTree(No *root){
+    if(root == NULL)
+        return;
+    freeTree(root->esquerda);
+    freeTree(root->direita);
+    free(root);
 }
 
+void shuffle(int *array, int size) {
+    for (int i = size - 1; i > 0; i--) {
+        int j = rand() % (i + 1); // Random index between 0 and i
+        // Swap elements at i and j
+        int temp = array[i];
+        array[i] = array[j];
+        array[j] = temp;
+    }
+}
+
+int* createArray(int size){
+    int *v = (int*)malloc(sizeof(int)*size);
+    for(int i = 0; i < size; i++){
+        v[i] = i+1;
+    }
+    return v;
+}
+
+int main() {
+    int *v = createArray(VSize);
+    FILE *ptr = fopen("AVLTreeInput.txt", "w");
+    FILE *ptr2 = fopen("AVLTreeOutput.txt", "w");
+    for(int i = 0; i < 10; i++){
+        cont = 0;
+        srand(time(NULL) + i);
+        shuffle(v, VSize);
+        Arvore *tree = criar();
+        for (int j = 0; j < VSize; j++) {
+            adicionar(tree, v[j]);
+        }
+        fprintf(ptr, "AVL,Input,%llu\n", cont);
+        cont = 0;
+        for (int k = 0; k < VSize; k++) {
+            remover(tree, v[k]);
+        }
+        fprintf(ptr2, "AVL,Output,%llu\n", cont);
+        freeTree(tree->raiz);
+    }
+    fclose(ptr);
+    fclose(ptr2);
+    free(v);
+    return 0;
+}
