@@ -1,17 +1,20 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
+#define Order 1
+#define VSize 10000
+long long unsigned int cont = 0;
 
 typedef struct Node {
-    int total;             
+    int total;
     int *keys;
     struct Node **children;
     struct Node *parent;
 } Node;
 
-// B-Tree Structure
 typedef struct BTree {
-    Node *root;            
-    int order;             
+    Node *root;
+    int order;
 } BTree;
 
 Node *createNode(int order) {
@@ -26,7 +29,7 @@ Node *createNode(int order) {
     for (int i = 0; i < maxKeys + 2; i++) {
         node->children[i] = NULL;
     }
-
+    cont++;
     return node;
 }
 
@@ -37,10 +40,10 @@ BTree *createBTree(int order) {
     return tree;
 }
 
-// Function to perform binary search within a node
 int binarySearch(Node *node, int key) {
     int low = 0, high = node->total - 1, mid;
     while (low <= high) {
+        cont++;
         mid = (low + high) / 2;
         if (node->keys[mid] == key) return mid;
         else if (node->keys[mid] < key) low = mid + 1;
@@ -57,11 +60,11 @@ void removeKeyFromNode(Node *node, int index) {
     for (int i = index; i < node->total - 1; i++) {
         node->keys[i] = node->keys[i + 1];
         node->children[i + 1] = node->children[i + 2];
+        cont++;
     }
     node->total--;
 }
 
-// Borrow a key from a sibling
 void borrowFromSibling(BTree *tree, Node *node, int index, Node *parent, int borrowFromRight) {
     if (borrowFromRight) {
         Node *rightSibling = parent->children[index + 1];
@@ -87,14 +90,16 @@ void borrowFromSibling(BTree *tree, Node *node, int index, Node *parent, int bor
             node->children[0]->parent = node;
         }
         node->total++;
-
         parent->keys[index - 1] = leftSibling->keys[leftSibling->total - 1];
         leftSibling->total--;
+        cont += 3;
     }
 }
 
 // Merge two sibling nodes
 void mergeNodes(BTree *tree, Node *left, Node *right, int separatorIndex, Node *parent) {
+    printf("Merging nodes...\n");
+
     left->keys[left->total] = parent->keys[separatorIndex];
     left->total++;
 
@@ -105,16 +110,21 @@ void mergeNodes(BTree *tree, Node *left, Node *right, int separatorIndex, Node *
             left->children[left->total]->parent = left;
         }
         left->total++;
+        cont++;
     }
+
     left->children[left->total] = right->children[right->total];
     if (left->children[left->total] != NULL) {
         left->children[left->total]->parent = left;
     }
 
     removeKeyFromNode(parent, separatorIndex);
+
     free(right->keys);
     free(right->children);
     free(right);
+    right = NULL; // Nullify pointer
+    cont += 2;
 }
 
 // Fix underflow by borrowing or merging
@@ -129,26 +139,29 @@ void fixUnderflow(BTree *tree, Node *node) {
         }
         return;
     }
-
     Node *parent = node->parent;
     int index = 0;
     while (parent->children[index] != node) {
         index++;
+        cont++;
     }
-
     if (index > 0 && parent->children[index - 1]->total > tree->order) {
         borrowFromSibling(tree, node, index, parent, 0);
+        cont++;
     } else if (index < parent->total && parent->children[index + 1]->total > tree->order) {
         borrowFromSibling(tree, node, index, parent, 1);
+        cont++;
     } else if (index > 0) {
         mergeNodes(tree, parent->children[index - 1], node, index - 1, parent);
+        cont++;
     } else {
         mergeNodes(tree, node, parent->children[index + 1], index, parent);
+        cont++;
     }
-
     if (isUnderflow(tree, parent)) {
         fixUnderflow(tree, parent);
     }
+    cont++;
 }
 
 // Find the in-order predecessor
@@ -156,6 +169,7 @@ int findPredecessor(Node *node) {
     Node *current = node->children[node->total];
     while (current->children[0] != NULL) {
         current = current->children[current->total];
+        cont++;
     }
     return current->keys[current->total - 1];
 }
@@ -177,6 +191,7 @@ void removeKeyRecursive(BTree *tree, Node *node, int key) {
             node->keys[i] = predecessor;
             removeKeyRecursive(tree, node->children[i], predecessor);
         }
+        cont += 3;
     } else if (node->children[0] != NULL) {
         removeKeyRecursive(tree, node->children[i], key);
     } else {
@@ -201,6 +216,7 @@ void insertKeyIntoNode(Node *node, int key, Node *rightChild) {
     for (int j = node->total; j > i; j--) {
         node->keys[j] = node->keys[j - 1];
         node->children[j + 1] = node->children[j];
+        cont += 2;
     }
     node->keys[i] = key;
     node->children[i + 1] = rightChild;
@@ -219,6 +235,7 @@ Node *splitNode(BTree *tree, Node *node) {
         if (newNode->children[newNode->total] != NULL) {
             newNode->children[newNode->total]->parent = newNode;
         }
+        cont += 2; //Key movement, pointer adjustment
         newNode->total++;
     }
 
@@ -226,7 +243,7 @@ Node *splitNode(BTree *tree, Node *node) {
     if (newNode->children[newNode->total] != NULL) {
         newNode->children[newNode->total]->parent = newNode;
     }
-
+    cont++; //Pointer adjustment
     node->total = midIndex;
     return newNode;
 }
@@ -255,6 +272,7 @@ void addKeyRecursive(BTree *tree, Node *node, int key, Node *rightChild) {
             addKeyRecursive(tree, node->parent, promotedKey, newNode);
         }
     }
+    cont += 2;
 }
 
 // Wrapper function for adding a key to the B-Tree
@@ -265,6 +283,7 @@ void addKey(BTree *tree, int key) {
     while (node->children[0] != NULL) {
         int i = binarySearch(node, key);
         node = node->children[i];
+        cont++;
     }
 
     // Insert the key in the leaf node
@@ -273,13 +292,27 @@ void addKey(BTree *tree, int key) {
 
 
 // Traverse the B-Tree and print keys
-void traverseBTree(Node *node) {
+void traverseBTree(Node *node, int depth) {
     if (node != NULL) {
-        for (int i = 0; i < node->total; i++) {
-            traverseBTree(node->children[i]);
-            printf("%d ", node->keys[i]);
+        // Print indentation based on depth
+        for (int i = 0; i < depth; i++) {
+            printf("  ");
         }
-        traverseBTree(node->children[node->total]);
+
+        // Print all keys in the current node
+        printf("[");
+        for (int i = 0; i < node->total; i++) {
+            printf("%d", node->keys[i]);
+            if (i < node->total - 1) {
+                printf(", ");
+            }
+        }
+        printf("]\n");
+
+        // Recursively print children
+        for (int i = 0; i <= node->total; i++) {
+            traverseBTree(node->children[i], depth + 1);
+        }
     }
 }
 
@@ -288,12 +321,16 @@ void freeNode(Node *node) {
     if (node != NULL) {
         for (int i = 0; i <= node->total; i++) {
             freeNode(node->children[i]);
+            node->children[i] = NULL; // Nullify after freeing
         }
         free(node->keys);
         free(node->children);
         free(node);
+        node = NULL; // Nullify node pointer
     }
 }
+
+
 
 // Free the entire B-Tree
 void freeBTree(BTree *tree) {
@@ -301,30 +338,42 @@ void freeBTree(BTree *tree) {
     free(tree);
 }
 
-int main() {
-    BTree *tree = createBTree(2);
-
-    addKey(tree, 10);
-    addKey(tree, 20);
-    addKey(tree, 5);
-    addKey(tree, 6);
-    addKey(tree, 12);
-    addKey(tree, 30);
-    addKey(tree, 7);
-    addKey(tree, 17);
-
-    printf("B-Tree keys before removal: ");
-    traverseBTree(tree->root);
-    printf("\n");
-
-    removeKey(tree, 6);
-    removeKey(tree, 12);
-
-    printf("B-Tree keys after removal: ");
-    traverseBTree(tree->root);
-    printf("\n");
-
-    freeBTree(tree);
-    return 0;
+void shuffle(int *array, int size) {
+    for (int i = size - 1; i > 0; i--) {
+        int j = rand() % (i + 1); // Random index between 0 and i
+        // Swap elements at i and j
+        int temp = array[i];
+        array[i] = array[j];
+        array[j] = temp;
+    }
 }
 
+int* createArray(int size){
+    int *v = (int*)malloc(sizeof(int)*size);
+    for(int i = 0; i < size; i++){
+        v[i] = i+1;
+    }
+    return v;
+}
+int main() {
+    int *v = createArray(VSize);
+    FILE *ptr = fopen("BTreeInput1.txt", "w");
+    FILE *ptr2 = fopen("BTreeOutput1.txt", "w");
+    for(int i = 0; i < 10; i++){
+        cont = 0;
+        srand(time(NULL) + i);
+        shuffle(v, VSize);
+        BTree *tree = createBTree(Order);
+        for (int j = 0; j < VSize; j++) {
+            addKey(tree, v[j]);
+        }
+        fprintf(ptr, "B,Input,%llu\n", cont);
+        cont = 0;
+        fprintf(ptr2, "B,Output,%llu\n", cont);
+        freeBTree(tree);
+    }
+    fclose(ptr);
+    fclose(ptr2);
+    free(v);
+    return 0;
+}
