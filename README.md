@@ -13,3 +13,6 @@ Funções que receberam valores maiores do que 1 são que possuem loops for or w
 Gráfico obtido ao iserir 10k valores aleatórios de [1..10000] em cada estrutura e obter o número de interações dentro do código
 
 Cada teste foi realizado 10x para obter um resultado mais preciso
+
+Conclusões:
+Os gráficos demonstram que o número de interações em cada teste manteve uma média constante. A árvore AVL apresentou o maior número de interações, comprovando que a árvore Rubro-Negra é mais eficiente em operações de inserção e remoção. Já a árvore B de ordem 10 exibiu um crescimento significativo em relação às outras estruturas.
